@@ -2,7 +2,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const { google } = require('googleapis');
 const express = require('express');
-const swisseph = require('swisseph'); // Planetary calculation mate
+const swisseph = require('swisseph-v2'); // Planetary calculation mate
 
 const app = express();
 const PORT = process.env.PORT || 3000;
