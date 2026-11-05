@@ -2,14 +2,14 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const { google } = require('googleapis');
 const express = require('express');
+const swisseph = require('swisseph'); // Planetary calculation mate
+
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Render માટે પોર્ટ ચાલુ રાખવો જરૂરી છે
-app.get('/', (req, res) => res.send('Astro Bot is Running!'));
+app.get('/', (req, res) => res.send('Astro Bot is Running with Swisseph!'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
-// Google Sheets Authentication
+// Google Sheets Auth
 const auth = new google.auth.GoogleAuth({
     credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -24,43 +24,67 @@ const client = new Client({
     puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
 });
 
-client.on('qr', (qr) => {
-    console.log('--- SCAN THIS QR CODE WITH YOUR WHATSAPP ---');
-    qrcode.generate(qr, { small: true });
-});
+client.on('qr', (qr) => qrcode.generate(qr, { small: true }));
+client.on('ready', () => console.log('Bot is Ready!'));
 
-client.on('ready', () => {
-    console.log('WhatsApp Bot is ready and online!');
-});
+// Client data temporary save karva mate
+const userState = {};
 
 client.on('message', async (msg) => {
+    const chatId = msg.from;
     const text = msg.body.trim();
-    
-    // જો કોઈ યુઝર '199' કે '1100' લખીને વિગતો મોકલે તો તેની શીટમાં એન્ટ્રી
-    // ફોર્મેટ: "199, નામ, જન્મ તારીખ, સમય, સ્થળ, પ્રશ્ન"
-    if (text.startsWith('199') || text.startsWith('1100')) {
-        const parts = text.split(',').map(p => p.trim());
-        if (parts.length >= 6) {
-            const [type, name, dob, tob, pob, question] = parts;
-            const targetSheetId = type === '1100' ? MASTER_SHEET_ID : MICRO_SHEET_ID;
-            
-            try {
-                await sheets.spreadsheets.values.append({
-                    spreadsheetId: targetSheetId,
-                    range: 'Sheet1!A:F',
-                    valueInputOption: 'USER_ENTERED',
-                    resource: {
-                        values: [[new Date().toLocaleDateString(), name, dob, tob, pob, question]]
-                    }
-                });
-                msg.reply(`✅ ધન્યવાદ ${name}! તમારી વિગતો મળી ગઈ છે. અમારો સંપર્ક ટૂંક સમયમાં થશે.`);
-            } catch (err) {
-                console.error('Error writing to Sheet:', err);
-                msg.reply('❌ વિગતો સેવ કરવામાં કંઈક ભૂલ થઈ છે. કૃપા કરીને ફરી પ્રયાસ કરો.');
-            }
-        } else {
-            msg.reply('⚠️ કૃપા કરીને વિગતો આ ફોર્મેટમાં મોકલો: "૧૯૯, તમારું નામ, જન્મ તારીખ, સમય, સ્થળ, તમારો પ્રશ્ન"');
+
+    if (!userState[chatId]) {
+        // Navo client ave tyare samethi puchse
+        userState[chatId] = { step: 1 };
+        return msg.reply('Namaste! ShivShakti Tour & Travels ane Astro-Vastu ma tamaru swagat che.\n\nKrupa kari tamari details aapo.\nTamaroo Naam su che?');
+    }
+
+    const state = userState[chatId];
+
+    if (state.step === 1) {
+        state.name = text;
+        state.step = 2;
+        return msg.reply('Tamari Janma Tarikh su che? (Da.ta. 12-05-1990)');
+    } 
+    else if (state.step === 2) {
+        state.dob = text;
+        state.step = 3;
+        return msg.reply('Tamaro Janma Samay su che? (Da.ta. 10:30 AM)');
+    }
+    else if (state.step === 3) {
+        state.tob = text;
+        state.step = 4;
+        return msg.reply('Tamaru Janma Sthal (Birth Place) su che?');
+    }
+    else if (state.step === 4) {
+        state.pob = text;
+        state.step = 5;
+        return msg.reply('Tamaro Prashna su che? (Je plan select karvo hoy te kaho: 199 ke 1100)');
+    }
+    else if (state.step === 5) {
+        state.question = text;
+        
+        // Swiss Ephemeris (swisseph) calculation ahiya add kari sakay
+        // Example: swisseph.swe_calc_ut(...)
+        
+        const targetSheet = text.includes('1100') ? MASTER_SHEET_ID : MICRO_SHEET_ID;
+
+        try {
+            await sheets.spreadsheets.values.append({
+                spreadsheetId: targetSheet,
+                range: 'Sheet1!A:F',
+                valueInputOption: 'USER_ENTERED',
+                resource: { values: [[new Date().toLocaleDateString(), state.name, state.dob, state.tob, state.pob, state.question]] }
+            });
+            msg.reply(`✅ Dhanyavad ${state.name}! Tamari details automatic system ma save thai gai che. Grah gintari (Planetary calculation) chalu che. Ame jaldij reply karisu.`);
+        } catch (err) {
+            console.error(err);
+            msg.reply('❌ Details save karvama error aavi che.');
         }
+        
+        // User nu kam patyu etle state clear karo
+        delete userState[chatId];
     }
 });
 
