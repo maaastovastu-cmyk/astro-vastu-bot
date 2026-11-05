@@ -36,15 +36,8 @@ const client = new Client({
     }
 });
 
-client.on('qr', (qr) => {
-    qrcode.generate(qr, { small: true });
-    
-    // આ કોડ ડાયરેક્ટ ઈમેજ લિંક બનાવશે
-    console.log('\n======================================================');
-    console.log('👉 QR કોડ સાફ જોવા માટે નીચેની લિંક પર ક્લિક કરો:');
-    console.log(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`);
-    console.log('======================================================\n');
-});
+// અહીથી { small: true } કાઢી નાખ્યું છે જેથી મોટો QR કોડ આવે
+client.on('qr', (qr) => qrcode.generate(qr));
 
 client.on('ready', () => console.log('Bot is Ready!'));
 
