@@ -6,7 +6,43 @@ const swisseph = require('swisseph-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Astro Bot is Running!'));
+
+let currentQR = '';
+
+// Web page par QR code dekhadva mate nu nvu logic
+app.get('/', (req, res) => {
+    if (currentQR === 'READY') {
+        res.send('<h1 style="text-align:center; margin-top:50px; color:green;">✅ Bot is Ready and Linked with WhatsApp!</h1>');
+    } else if (currentQR) {
+        res.send(`
+            <html>
+            <head><title>Scan WhatsApp QR</title></head>
+            <body style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#f4f4f9; font-family:sans-serif;">
+                <div style="text-align:center; background:#fff; padding:40px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <h2 style="color:#333;">WhatsApp thi Scan Karo</h2>
+                    <div id="qrcode" style="margin:20px auto; display:flex; justify-content:center;"></div>
+                    <p style="color:#666; font-size:14px;">Aa code automatic refresh thai jase.</p>
+                </div>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+                <script>
+                    new QRCode(document.getElementById("qrcode"), {
+                        text: "${currentQR}",
+                        width: 260,
+                        height: 260,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.M
+                    });
+                    setTimeout(() => location.reload(), 15000); // 15 second ma auto refresh
+                </script>
+            </body>
+            </html>
+        `);
+    } else {
+        res.send('<h1 style="text-align:center; margin-top:50px;">⏳ Loading QR Code... 10 second pachi page refresh karo.</h1>');
+    }
+});
+
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
 const auth = new google.auth.GoogleAuth({
@@ -36,10 +72,16 @@ const client = new Client({
     }
 });
 
-// અહીથી { small: true } કાઢી નાખ્યું છે જેથી મોટો QR કોડ આવે
-client.on('qr', (qr) => qrcode.generate(qr));
+client.on('qr', (qr) => {
+    currentQR = qr;
+    console.log('👉 Nayo QR Code aavi gayo che! https://astro-vastu-bot.onrender.com par jaine scan karo.');
+    qrcode.generate(qr, { small: true });
+});
 
-client.on('ready', () => console.log('Bot is Ready!'));
+client.on('ready', () => {
+    currentQR = 'READY';
+    console.log('✅ Bot is Ready!');
+});
 
 const userState = {};
 
