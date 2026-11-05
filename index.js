@@ -9,7 +9,6 @@ const PORT = process.env.PORT || 3000;
 
 let currentQR = '';
 
-// Web page par QR code dekhadva mate nu nvu logic
 app.get('/', (req, res) => {
     if (currentQR === 'READY') {
         res.send('<h1 style="text-align:center; margin-top:50px; color:green;">✅ Bot is Ready and Linked with WhatsApp!</h1>');
@@ -33,7 +32,7 @@ app.get('/', (req, res) => {
                         colorLight : "#ffffff",
                         correctLevel : QRCode.CorrectLevel.M
                     });
-                    setTimeout(() => location.reload(), 15000); // 15 second ma auto refresh
+                    setTimeout(() => location.reload(), 15000);
                 </script>
             </body>
             </html>
@@ -69,12 +68,14 @@ const client = new Client({
             '--single-process', 
             '--disable-gpu'
         ] 
-    }
+    },
+    // Aa line WhatsApp ni "Couldn't link" error solve karse:
+    webVersionCache: { type: 'none' }
 });
 
 client.on('qr', (qr) => {
     currentQR = qr;
-    console.log('👉 Nayo QR Code aavi gayo che! https://astro-vastu-bot.onrender.com par jaine scan karo.');
+    console.log('👉 Nayo QR Code aavi gayo che! Web link par jaine scan karo.');
     qrcode.generate(qr, { small: true });
 });
 
