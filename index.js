@@ -21,7 +21,10 @@ const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
     authStrategy: new LocalAuth(),
-    puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
+    puppeteer: { 
+        executablePath: '/opt/render/.cache/puppeteer/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+    }
 });
 
 client.on('qr', (qr) => qrcode.generate(qr, { small: true }));
