@@ -15,12 +15,16 @@ app.get('/', (req, res) => {
     } else if (currentQR) {
         res.send(`
             <html>
-            <head><title>Scan WhatsApp QR</title></head>
+            <head>
+                <title>Scan WhatsApp QR</title>
+                <meta http-equiv="refresh" content="10">
+            </head>
             <body style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#f4f4f9; font-family:sans-serif;">
                 <div style="text-align:center; background:#fff; padding:40px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <h2 style="color:#333;">WhatsApp thi Scan Karo</h2>
                     <div id="qrcode" style="margin:20px auto; display:flex; justify-content:center;"></div>
-                    <p style="color:#666; font-size:14px;">Aa code automatic refresh thai jase.</p>
+                    <p style="color:#666; font-size:14px;">Aa code har 10 second e automatic nyo aavse (Auto-refresh).</p>
+                    <p style="color:red; font-size:13px; font-weight:bold;">Jo "Couldn't link" aave to fari scan karo (Server ne set thata 2-3 try lagi sake che).</p>
                 </div>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
                 <script>
@@ -32,7 +36,6 @@ app.get('/', (req, res) => {
                         colorLight : "#ffffff",
                         correctLevel : QRCode.CorrectLevel.M
                     });
-                    setTimeout(() => location.reload(), 15000);
                 </script>
             </body>
             </html>
@@ -54,7 +57,7 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({ clientId: 'astro-bot' }),
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -69,14 +72,13 @@ const client = new Client({
             '--disable-gpu'
         ] 
     },
-    // Aa line WhatsApp ni "Couldn't link" error solve karse:
-    webVersionCache: { type: 'none' }
+    // Bot ne asli browser tarike batavva mate:
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 });
 
 client.on('qr', (qr) => {
     currentQR = qr;
-    console.log('👉 Nayo QR Code aavi gayo che! Web link par jaine scan karo.');
-    qrcode.generate(qr, { small: true });
+    console.log('👉 Navo QR Code web page par aavi gayo che!');
 });
 
 client.on('ready', () => {
