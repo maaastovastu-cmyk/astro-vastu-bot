@@ -1,12 +1,11 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 const { google } = require('googleapis');
 const express = require('express');
 const swisseph = require('swisseph-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('✅ Astro Bot is fully Awake and Running!'));
+app.get('/', (req, res) => res.send('✅ Astro Bot is Awake! Check logs for Pairing Code.'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
 const auth = new google.auth.GoogleAuth({
@@ -19,7 +18,7 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-v7' }), // Navo fresh start
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-v8' }), // Ekdam navo session
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -33,14 +32,30 @@ const client = new Client({
             '--single-process', 
             '--disable-gpu'
         ] 
-    }
+    },
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
 });
 
+let codeRequested = false;
+
 client.on('qr', (qr) => {
-    console.log('\n========================================');
-    console.log('👉 QR Code aavi gayo che. Tarat Scan karo:');
-    qrcode.generate(qr, { small: true });
-    console.log('========================================\n');
+    if (!codeRequested) {
+        codeRequested = true;
+        console.log('\n⏳ Server ready thai rahyu che. 10 second wait karo...');
+        
+        // 10 second wait karse jethi Error: t na aave
+        setTimeout(async () => {
+            try {
+                // Tamaro number direct nakhi didho che
+                const pairingCode = await client.requestPairingCode('919426612172');
+                console.log('\n====================================================');
+                console.log('👉 TAMARO PAIRING CODE (8 Aakda):', pairingCode);
+                console.log('====================================================\n');
+            } catch (err) {
+                console.log('❌ Pairing Code Error:', err.message);
+            }
+        }, 10000);
+    }
 });
 
 client.on('ready', () => console.log('✅ Bot is Ready!'));
