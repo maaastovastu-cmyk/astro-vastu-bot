@@ -5,7 +5,7 @@ const swisseph = require('swisseph-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('✅ Astro Bot is Awake and Running!'));
+app.get('/', (req, res) => res.send('✅ Astro Bot 24/7 Active!'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
 const auth = new google.auth.GoogleAuth({
@@ -18,7 +18,7 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-v8' }), // Aa 'v8' j rakhyu che jethi fari login na karvu pade
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-final' }), 
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -36,11 +36,33 @@ const client = new Client({
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
 });
 
-client.on('qr', () => {
-    console.log('QR/Pairing requested, pan aapanne jarur nathi kem ke already logged in che.');
+let codeRequested = false;
+
+client.on('qr', (qr) => {
+    if (!codeRequested) {
+        codeRequested = true;
+        console.log('\n⏳ Login data lost. Fari thi Pairing Code laavi rahya chiye...');
+        
+        setTimeout(async () => {
+            try {
+                const pairingCode = await client.requestPairingCode('919426612172');
+                console.log('\n====================================================');
+                console.log('👉 TAMARO PAIRING CODE (8 Aakda):', pairingCode);
+                console.log('====================================================\n');
+            } catch (err) {
+                console.log('❌ Pairing Code Error:', err.message);
+            }
+        }, 10000);
+    }
 });
 
 client.on('ready', () => console.log('✅ Bot is Ready!'));
+
+// Bot disconnect thay to jaate restart thai jay
+client.on('disconnected', (reason) => {
+    console.log('❌ Bot Disconnected:', reason);
+    client.initialize();
+});
 
 const userState = {};
 
@@ -50,8 +72,7 @@ client.on('message', async (msg) => {
 
     if (!userState[chatId]) {
         userState[chatId] = { step: 1 };
-        // TOUR & TRAVELS KADHI NAKHYU CHE 👇
-        return msg.reply('Namaste! Jignesh Patel ni Astro-Vastu Consultancy ma tamaru swagat che.\n\nKundali ane Vastu margdarshan mate krupa kari tamari details aapo.\nTamaru Naam su che?');
+        return msg.reply('Namaste! Amit bhai ni Astro-Vastu Consultancy ma tamaru swagat che.\n\nKundali ane Vastu margdarshan mate krupa kari tamari details aapo.\nTamaru Naam su che?');
     }
 
     const state = userState[chatId];
