@@ -1,7 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const { google } = require('googleapis');
 const express = require('express');
-const swisseph = require('swisseph-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,7 +17,7 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-final' }), 
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-v9' }), // Ekdam navo session jethi block hati jay
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -30,7 +29,8 @@ const client = new Client({
             '--no-first-run',
             '--no-zygote',
             '--single-process', 
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-web-security'
         ] 
     },
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
@@ -41,7 +41,7 @@ let codeRequested = false;
 client.on('qr', (qr) => {
     if (!codeRequested) {
         codeRequested = true;
-        console.log('\n⏳ Login data lost. Fari thi Pairing Code laavi rahya chiye...');
+        console.log('\n⏳ WhatsApp security check thai rahyu che. 15 second wait karo...');
         
         setTimeout(async () => {
             try {
@@ -52,13 +52,12 @@ client.on('qr', (qr) => {
             } catch (err) {
                 console.log('❌ Pairing Code Error:', err.message);
             }
-        }, 10000);
+        }, 15000);
     }
 });
 
 client.on('ready', () => console.log('✅ Bot is Ready!'));
 
-// Bot disconnect thay to jaate restart thai jay
 client.on('disconnected', (reason) => {
     console.log('❌ Bot Disconnected:', reason);
     client.initialize();
@@ -69,6 +68,9 @@ const userState = {};
 client.on('message', async (msg) => {
     const chatId = msg.from;
     const text = msg.body.trim();
+
+    // Bot pote potane message na aape te mate
+    if (msg.fromMe) return;
 
     if (!userState[chatId]) {
         userState[chatId] = { step: 1 };
