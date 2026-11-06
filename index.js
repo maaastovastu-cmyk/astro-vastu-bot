@@ -1,5 +1,4 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 const { google } = require('googleapis');
 const express = require('express');
 const swisseph = require('swisseph-v2');
@@ -7,41 +6,25 @@ const swisseph = require('swisseph-v2');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-let currentQR = '';
+// 👇 CHANGE THIS TO YOUR WHATSAPP NUMBER (Start with 91 for India) 👇
+const MY_PHONE_NUMBER = '919426612172'; 
+// 👆 ----------------------------------------------------------- 👆
+
+let pairingCode = '';
 
 app.get('/', (req, res) => {
-    if (currentQR === 'READY') {
+    if (pairingCode === 'READY') {
         res.send('<h1 style="text-align:center; margin-top:50px; color:green;">✅ Bot is Ready and Linked with WhatsApp!</h1>');
-    } else if (currentQR) {
+    } else if (pairingCode) {
         res.send(`
-            <html>
-            <head>
-                <title>Scan WhatsApp QR</title>
-                <meta http-equiv="refresh" content="10">
-            </head>
-            <body style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#f4f4f9; font-family:sans-serif;">
-                <div style="text-align:center; background:#fff; padding:40px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                    <h2 style="color:#333;">WhatsApp thi Scan Karo</h2>
-                    <div id="qrcode" style="margin:20px auto; display:flex; justify-content:center;"></div>
-                    <p style="color:#666; font-size:14px;">Aa code har 10 second e automatic nyo aavse (Auto-refresh).</p>
-                    <p style="color:red; font-size:13px; font-weight:bold;">Jo "Couldn't link" aave to fari scan karo (Server ne set thata 2-3 try lagi sake che).</p>
-                </div>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-                <script>
-                    new QRCode(document.getElementById("qrcode"), {
-                        text: "${currentQR}",
-                        width: 260,
-                        height: 260,
-                        colorDark : "#000000",
-                        colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.M
-                    });
-                </script>
-            </body>
-            </html>
+            <div style="text-align:center; font-family:sans-serif; margin-top:50px;">
+                <h2>Your WhatsApp Pairing Code:</h2>
+                <h1 style="font-size: 50px; letter-spacing: 5px; color: #075E54; background: #e9edef; padding: 20px; display: inline-block; border-radius: 10px;">${pairingCode}</h1>
+                <p style="font-size: 18px; color: #555;">Open WhatsApp > Linked Devices > <b>Link with phone number</b> > Enter this code.</p>
+            </div>
         `);
     } else {
-        res.send('<h1 style="text-align:center; margin-top:50px;">⏳ Loading QR Code... 10 second pachi page refresh karo.</h1>');
+        res.send('<h1 style="text-align:center; margin-top:50px;">⏳ Generating Pairing Code... Please wait 15-20 seconds and refresh this page.</h1>');
     }
 });
 
@@ -57,7 +40,7 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'astro-bot' }),
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-v2' }), 
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -72,17 +55,29 @@ const client = new Client({
             '--disable-gpu'
         ] 
     },
-    // Bot ne asli browser tarike batavva mate:
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 });
 
-client.on('qr', (qr) => {
-    currentQR = qr;
-    console.log('👉 Navo QR Code web page par aavi gayo che!');
+let codeRequested = false;
+
+client.on('qr', async (qr) => {
+    if (!codeRequested) {
+        try {
+            console.log('Generating pairing code for:', MY_PHONE_NUMBER);
+            const code = await client.requestPairingCode(MY_PHONE_NUMBER);
+            pairingCode = code;
+            console.log('\n========================================');
+            console.log('👉 YOUR PAIRING CODE IS:', code);
+            console.log('========================================\n');
+            codeRequested = true;
+        } catch (error) {
+            console.error('Error generating pairing code:', error);
+        }
+    }
 });
 
 client.on('ready', () => {
-    currentQR = 'READY';
+    pairingCode = 'READY';
     console.log('✅ Bot is Ready!');
 });
 
@@ -94,7 +89,7 @@ client.on('message', async (msg) => {
 
     if (!userState[chatId]) {
         userState[chatId] = { step: 1 };
-        return msg.reply('Namaste! ShivShakti Tour & Travels ane Astro-Vastu ma tamaru swagat che.\n\nKrupa kari tamari details aapo.\nTamaroo Naam su che?');
+        return msg.reply('Namaste! ShivShakti Tour & Travels and Astro-Vastu welcomes you.\n\nPlease provide your details.\nWhat is your Name?');
     }
 
     const state = userState[chatId];
@@ -102,22 +97,22 @@ client.on('message', async (msg) => {
     if (state.step === 1) {
         state.name = text;
         state.step = 2;
-        return msg.reply('Tamari Janma Tarikh su che? (Da.ta. 12-05-1990)');
+        return msg.reply('What is your Date of Birth? (e.g. 12-05-1990)');
     } 
     else if (state.step === 2) {
         state.dob = text;
         state.step = 3;
-        return msg.reply('Tamaro Janma Samay su che? (Da.ta. 10:30 AM)');
+        return msg.reply('What is your Time of Birth? (e.g. 10:30 AM)');
     }
     else if (state.step === 3) {
         state.tob = text;
         state.step = 4;
-        return msg.reply('Tamaru Janma Sthal (Birth Place) su che?');
+        return msg.reply('What is your Place of Birth?');
     }
     else if (state.step === 4) {
         state.pob = text;
         state.step = 5;
-        return msg.reply('Tamaro Prashna su che? (Je plan select karvo hoy te kaho: 199 ke 1100)');
+        return msg.reply('What is your Question? (Mention the plan you want: 199 or 1100)');
     }
     else if (state.step === 5) {
         state.question = text;
@@ -130,10 +125,10 @@ client.on('message', async (msg) => {
                 valueInputOption: 'USER_ENTERED',
                 resource: { values: [[new Date().toLocaleDateString(), state.name, state.dob, state.tob, state.pob, state.question]] }
             });
-            msg.reply(`✅ Dhanyavad ${state.name}! Tamari details save thai gai che. Grah gintari chalu che. Ame jaldij reply karisu.`);
+            msg.reply(`✅ Thank you ${state.name}! Your details are saved. Planetary calculation is in progress. We will reply shortly.`);
         } catch (err) {
             console.error(err);
-            msg.reply('❌ Details save karvama error aavi che.');
+            msg.reply('❌ Error saving details.');
         }
         delete userState[chatId];
     }
