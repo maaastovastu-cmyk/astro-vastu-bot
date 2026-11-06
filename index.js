@@ -19,7 +19,6 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    // આનાથી એકદમ નવો ડેટા બનશે અને જૂની સ્કેન એરર સોલ્વ થઈ જશે
     authStrategy: new LocalAuth({ clientId: 'astro-bot-fresh' }),
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
@@ -39,9 +38,9 @@ const client = new Client({
 
 client.on('qr', (qr) => {
     console.log('\n========================================');
-    console.log('👉 QR કોડ સ્કેન કરવા માટે તૈયાર છે:');
-    // small: true કાઢી નાખ્યું છે જેથી કોડ મોટો અને સાફ આવે
-    qrcode.generate(qr);
+    console.log('👉 QR Code scan karva mate taiyar che:');
+    // { small: true } pachu add karyu che jathi code fati na jay
+    qrcode.generate(qr, { small: true });
     console.log('========================================\n');
 });
 
