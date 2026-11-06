@@ -1,12 +1,11 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 const { google } = require('googleapis');
 const express = require('express');
 const swisseph = require('swisseph-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Astro Bot is Running! Check Render Logs.'));
+app.get('/', (req, res) => res.send('Astro Bot is Running! Check Logs.'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
 const auth = new google.auth.GoogleAuth({
@@ -19,8 +18,8 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    // નવો ડેટા બનાવવા માટે v4
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-v4' }),
+    // Nayo session ID jethi juno kachro clear thai jay
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-v5' }),
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -32,36 +31,35 @@ const client = new Client({
             '--no-first-run',
             '--no-zygote',
             '--single-process', 
-            '--disable-gpu',
-            '--disable-web-security'
+            '--disable-gpu'
         ] 
     }
 });
 
 let codeRequested = false;
 
-client.on('qr', (qr) => {
+client.on('qr', async (qr) => {
     if (!codeRequested) {
-        console.log('\n⏳ Server is preparing... waiting 5 seconds before requesting Pairing Code...');
         codeRequested = true;
+        console.log('\n⏳ Server WhatsApp sathe connect thai rahyu che...');
         
-        // 5 સેકન્ડ રાહ જોશે જેથી સર્વર ક્રેશ ન થાય
-        setTimeout(async () => {
-            try {
-                // મેં તમારો નંબર અહિયાં સીધો જ સેટ કરી દીધો છે!
-                const pairingCode = await client.requestPairingCode('919426612172');
-                console.log('\n====================================================');
-                console.log('👉 તમારો PAIRING CODE (8 આંકડા) આ છે:', pairingCode);
-                console.log('====================================================\n');
-            } catch (err) {
-                console.log('❌ Pairing Code Error:', err.message);
-                qrcode.generate(qr, { small: true });
-            }
-        }, 5000);
+        try {
+            // Khali Pairing code j mangshe, QR code print nai kare
+            const pairingCode = await client.requestPairingCode('919426612172');
+            console.log('\n====================================================');
+            console.log('👉 TAMARO PAIRING CODE (8 Aakda):', pairingCode);
+            console.log('====================================================\n');
+        } catch (err) {
+            console.log('❌ Pairing Code Error:', err.message);
+        }
     }
 });
 
 client.on('ready', () => console.log('✅ Bot is Ready!'));
+
+// Error aave to exact reason khabar pade
+client.on('auth_failure', msg => console.error('❌ Auth Failure (Login fail thayu):', msg));
+client.on('disconnected', reason => console.log('❌ Disconnected:', reason));
 
 const userState = {};
 
