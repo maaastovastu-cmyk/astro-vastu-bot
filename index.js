@@ -6,7 +6,7 @@ const swisseph = require('swisseph-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Astro Bot is Running! Check Render Logs for QR Code.'));
+app.get('/', (req, res) => res.send('Astro Bot is Running! Check Render Logs.'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
 const auth = new google.auth.GoogleAuth({
@@ -19,7 +19,8 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-fresh' }),
+    // નવો ડેટા બનાવવા માટે v4
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-v4' }),
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -31,17 +32,33 @@ const client = new Client({
             '--no-first-run',
             '--no-zygote',
             '--single-process', 
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-web-security'
         ] 
     }
 });
 
+let codeRequested = false;
+
 client.on('qr', (qr) => {
-    console.log('\n========================================');
-    console.log('👉 QR Code scan karva mate taiyar che:');
-    // { small: true } pachu add karyu che jathi code fati na jay
-    qrcode.generate(qr, { small: true });
-    console.log('========================================\n');
+    if (!codeRequested) {
+        console.log('\n⏳ Server is preparing... waiting 5 seconds before requesting Pairing Code...');
+        codeRequested = true;
+        
+        // 5 સેકન્ડ રાહ જોશે જેથી સર્વર ક્રેશ ન થાય
+        setTimeout(async () => {
+            try {
+                // મેં તમારો નંબર અહિયાં સીધો જ સેટ કરી દીધો છે!
+                const pairingCode = await client.requestPairingCode('919426612172');
+                console.log('\n====================================================');
+                console.log('👉 તમારો PAIRING CODE (8 આંકડા) આ છે:', pairingCode);
+                console.log('====================================================\n');
+            } catch (err) {
+                console.log('❌ Pairing Code Error:', err.message);
+                qrcode.generate(qr, { small: true });
+            }
+        }, 5000);
+    }
 });
 
 client.on('ready', () => console.log('✅ Bot is Ready!'));
