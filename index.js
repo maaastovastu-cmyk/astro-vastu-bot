@@ -1,11 +1,12 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
 const { google } = require('googleapis');
 const express = require('express');
 const swisseph = require('swisseph-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Astro Bot is Running! Check Logs.'));
+app.get('/', (req, res) => res.send('Astro Bot is Running!'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
 const auth = new google.auth.GoogleAuth({
@@ -18,8 +19,7 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    // Nayo session ID jethi juno kachro clear thai jay
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-v5' }),
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-v6' }),
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -31,34 +31,39 @@ const client = new Client({
             '--no-first-run',
             '--no-zygote',
             '--single-process', 
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-web-security'
         ] 
-    }
+    },
+    // Aa line thi WhatsApp ne lagse ke aapne asli Windows computer vapari rahya chiye
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
 });
 
 let codeRequested = false;
 
-client.on('qr', async (qr) => {
+client.on('qr', (qr) => {
     if (!codeRequested) {
         codeRequested = true;
-        console.log('\n⏳ Server WhatsApp sathe connect thai rahyu che...');
+        console.log('\n⏳ WhatsApp page load thai rahyu che... 10 second wait karo...');
         
-        try {
-            // Khali Pairing code j mangshe, QR code print nai kare
-            const pairingCode = await client.requestPairingCode('919426612172');
-            console.log('\n====================================================');
-            console.log('👉 TAMARO PAIRING CODE (8 Aakda):', pairingCode);
-            console.log('====================================================\n');
-        } catch (err) {
-            console.log('❌ Pairing Code Error:', err.message);
-        }
+        setTimeout(async () => {
+            try {
+                const pairingCode = await client.requestPairingCode('919426612172');
+                console.log('\n====================================================');
+                console.log('👉 TAMARO PAIRING CODE:', pairingCode);
+                console.log('====================================================\n');
+            } catch (err) {
+                console.log('❌ Pairing Code Error:', err.message);
+                console.log('👉 QR Code thi try karo (Browser ma Ctrl ane + dabavi zoom karjo):');
+                qrcode.generate(qr, { small: true });
+            }
+        }, 10000); // 10 second no delay jethi fari Error: t na aave
     }
 });
 
 client.on('ready', () => console.log('✅ Bot is Ready!'));
 
-// Error aave to exact reason khabar pade
-client.on('auth_failure', msg => console.error('❌ Auth Failure (Login fail thayu):', msg));
+client.on('auth_failure', msg => console.error('❌ Auth Failure:', msg));
 client.on('disconnected', reason => console.log('❌ Disconnected:', reason));
 
 const userState = {};
