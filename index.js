@@ -40,7 +40,7 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-v2' }), 
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-v3' }), 
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
