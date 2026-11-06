@@ -17,7 +17,7 @@ const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-v10' }), // Ekdam navo start
+    authStrategy: new LocalAuth({ clientId: 'astro-bot-v11' }), // Fari fresh start
     puppeteer: { 
         executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
         headless: true,
@@ -29,21 +29,21 @@ const client = new Client({
             '--no-first-run',
             '--no-zygote',
             '--single-process', 
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-software-rasterizer', // Vadhara ni RAM na vapray
+            '--js-flags="--max-old-space-size=256"' // Memory ekdam control ma rakhe
         ] 
     },
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
 });
 
 client.on('qr', (qr) => {
-    // QR code ni direct link banavi didhi che
     const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(qr)}`;
     
     console.log('\n====================================================');
     console.log('👉 QR Code aavi gayo che! Niche ni link par CLICK karo:');
     console.log(qrLink);
     console.log('====================================================\n');
-    console.log('Link open kari ne tarat mobile thi scan kari lo!');
 });
 
 client.on('ready', () => console.log('✅ Bot is Ready!'));
