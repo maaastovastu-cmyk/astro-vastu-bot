@@ -24,8 +24,8 @@ const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 const userState = {};
 
 async function connectToWhatsApp() {
-    // Navo session name "astro_v13" for RAM safety
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_astro_v13');
+    // Navo session name to avoid RAM Crashes and restart loops
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys_v14');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
@@ -33,13 +33,15 @@ async function connectToWhatsApp() {
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
         auth: state,
-        browser: ['Maa Consultancy', 'Chrome', '1.0.0'],
+        // Windows desktop target simulate secure authentication
+        browser: ['Windows', 'Chrome', '110.0.5481.177'],
         
-        // 🔥 RAM CRASH THAVATHI BACHAVAVA MATE KHAS SETTINGS 👇
-        historyCacheSize: 0,       // No history load
-        syncFullHistory: false,    // No old message download
-        maxMsgRetryCount: 1,       // Limit memory overuse
-        defaultQueryTimeoutMs: 60000 // Force keep-alive
+        // 🚀 RAM CRASH THAVATHI BACHAVAVA MATE STABLE SETTINGS 👇
+        historyCacheSize: 0,        // Extra old cached data reject
+        syncFullHistory: false,     // Avoid downloading past message loops
+        maxMsgRetryCount: 1,        // Minimize retry overhead
+        defaultQueryTimeoutMs: undefined, // Timeout problems resolve
+        markOnlineOnConnect: true   // Stay connected with priority status
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -53,8 +55,8 @@ async function connectToWhatsApp() {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('❌ Connection closed, Reconnecting:', shouldReconnect);
             if(shouldReconnect) {
-                // 8 second wait kari ne reconnect thashe, crash nahi thay
-                setTimeout(() => connectToWhatsApp(), 8000);
+                // Wait to make sure server doesn't hit memory crashes
+                setTimeout(() => connectToWhatsApp(), 10000);
             }
         } 
         else if(connection === 'open') {
@@ -63,12 +65,12 @@ async function connectToWhatsApp() {
             console.log('====================================================');
         }
 
-        // SECURE Pairing Code Trigger
+        // Check registration and delay request to avoid spam/loop blocks
         if (qr && !sock.authState.creds.registered && !isCodeRequested) {
             isCodeRequested = true;
             console.log('\n⏳ WhatsApp Server sathe handshake thav dyo, wait 10 seconds...');
             
-            await delay(10000); // Handshake mate delay zaroori
+            await delay(12000); // 12 seconds safe handshake delay to satisfy pairing limits
             try {
                 const code = await sock.requestPairingCode("919426612172");
                 console.log('\n====================================================');
@@ -76,15 +78,12 @@ async function connectToWhatsApp() {
                 console.log('====================================================\n');
             } catch(err) {
                 console.log('❌ Pairing code request fail thai: ', err.message);
-                isCodeRequested = false; 
+                isCodeRequested = false; // reset flag on errors
             }
         }
     });
 
     sock.ev.on('messages.upsert', async m => {
-        // Pura messaging queue handle mate check
-        if (m.type !== 'notify') return; 
-        
         const msg = m.messages[0];
         if (!msg.message) return;
 
