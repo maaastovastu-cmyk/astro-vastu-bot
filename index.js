@@ -24,8 +24,8 @@ const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 const userState = {};
 
 async function connectToWhatsApp() {
-    // Navo session name "astro-v12"
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_astro_v12');
+    // Navo session name "astro_v13" for RAM safety
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_astro_v13');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
@@ -33,9 +33,13 @@ async function connectToWhatsApp() {
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
         auth: state,
-        // Windows Desktop ni jem karsu jethi pairing secure thai
-        browser: ['Windows', 'Chrome', '110.0.5481.177'],
-        defaultQueryTimeoutMs: undefined // Timeout Error: Connection Closed nathi thava detu
+        browser: ['Maa Consultancy', 'Chrome', '1.0.0'],
+        
+        // 🔥 RAM CRASH THAVATHI BACHAVAVA MATE KHAS SETTINGS 👇
+        historyCacheSize: 0,       // No history load
+        syncFullHistory: false,    // No old message download
+        maxMsgRetryCount: 1,       // Limit memory overuse
+        defaultQueryTimeoutMs: 60000 // Force keep-alive
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -45,29 +49,26 @@ async function connectToWhatsApp() {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
         
-        // 1. Connection loose thay to automatic restart thava mate
         if(connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('❌ Connection closed, Reconnecting:', shouldReconnect);
             if(shouldReconnect) {
-                // 5 second wait kari ne reconnect thashe, crash nahi thay
-                setTimeout(() => connectToWhatsApp(), 5000);
+                // 8 second wait kari ne reconnect thashe, crash nahi thay
+                setTimeout(() => connectToWhatsApp(), 8000);
             }
         } 
-        
-        // 2. Bot Link thai gayo to ready no message aave
         else if(connection === 'open') {
             console.log('====================================================');
             console.log('✅ MAA CONSULTANCY ASTRO-VASTU BOT IS READY!');
             console.log('====================================================');
         }
 
-        // 3. SECURE Pairing Code Trigger (Jyare update thashe tyare j demand karshe)
+        // SECURE Pairing Code Trigger
         if (qr && !sock.authState.creds.registered && !isCodeRequested) {
             isCodeRequested = true;
-            console.log('\n⏳ WhatsApp Server sathe handshake thav dyo, wait 8 seconds...');
+            console.log('\n⏳ WhatsApp Server sathe handshake thav dyo, wait 10 seconds...');
             
-            await delay(8000); // Handshake mate delay zaroori
+            await delay(10000); // Handshake mate delay zaroori
             try {
                 const code = await sock.requestPairingCode("919426612172");
                 console.log('\n====================================================');
@@ -75,12 +76,15 @@ async function connectToWhatsApp() {
                 console.log('====================================================\n');
             } catch(err) {
                 console.log('❌ Pairing code request fail thai: ', err.message);
-                isCodeRequested = false; // Error aave to fari thodu thaobhi reregister karshe
+                isCodeRequested = false; 
             }
         }
     });
 
     sock.ev.on('messages.upsert', async m => {
+        // Pura messaging queue handle mate check
+        if (m.type !== 'notify') return; 
+        
         const msg = m.messages[0];
         if (!msg.message) return;
 
