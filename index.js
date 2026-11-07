@@ -1,13 +1,18 @@
+// ૧. સૌથી પહેલા એક્સપ્રેસ સર્વર (Port Binding) ચાલુ કરો જેથી Render આપણને બંધ ન કરે
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 10000; // Render dynamic port use
+
+app.get('/', (req, res) => res.send('✅ Maa Consultancy Astro-Vastu Bot is Always Active!'));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 [CRITICAL] Render Port Binding Successful on port ${PORT}`);
+});
+
+// ૨. બાકીની બધી જ હેવી લાઈબ્રેરીઓ હવે લોડ કરો
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, delay } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const express = require('express');
 const { google } = require('googleapis');
 const swisseph = require('swisseph-v2');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('✅ Maa Consultancy Astro-Vastu Bot is Active!'));
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
 const ADMIN_NUMBER = '919426612172@s.whatsapp.net';
 
@@ -23,8 +28,8 @@ const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 const userState = {};
 
 async function connectToWhatsApp() {
-    // Navo fresh safe session 'astro_v16'
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_astro_v16');
+    // Navo session 'astro_v17'
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_astro_v17');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
@@ -34,11 +39,11 @@ async function connectToWhatsApp() {
         auth: state,
         browser: ['Maa-Consultancy', 'Safari', '16.0'],
         
-        // RAM crashes thi bachva mate ekdam basic settings
+        // RAM અને સ્પીડની સુરક્ષા માટે સેટિંગ્સ
         historyCacheSize: 0,
         syncFullHistory: false,
         maxMsgRetryCount: 1,
-        defaultQueryTimeoutMs: 120000, // timeout vadhari didho
+        defaultQueryTimeoutMs: 120000, 
         markOnlineOnConnect: false
     });
 
@@ -53,7 +58,7 @@ async function connectToWhatsApp() {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('❌ Connection closed, Reconnecting:', shouldReconnect);
             if(shouldReconnect) {
-                setTimeout(() => connectToWhatsApp(), 15000); // vadhare samay aapo
+                setTimeout(() => connectToWhatsApp(), 15000); 
             }
         } 
         else if(connection === 'open') {
@@ -64,9 +69,9 @@ async function connectToWhatsApp() {
 
         if (qr && !sock.authState.creds.registered && !isCodeRequested) {
             isCodeRequested = true;
-            console.log('\n⏳ Server stability check... wait 18 seconds...');
+            console.log('\n⏳ Server stability checking, wait 15 seconds...');
             
-            await delay(18000); // handshake mate purto delay
+            await delay(15000); 
             try {
                 const code = await sock.requestPairingCode("919426612172");
                 console.log('\n====================================================');
