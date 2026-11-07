@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('✅ Maa Consultancy Astro-Vastu Bot is 24/7 Active!'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
-// Admin Mobile Number
+// Admin Mobile Number (તમારો પર્સનલ નંબર)
 const ADMIN_NUMBER = '919426612172@s.whatsapp.net';
 
 // Google Sheets Setup
@@ -24,8 +24,8 @@ const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 const userState = {};
 
 async function connectToWhatsApp() {
-    // Navo session name to avoid RAM Crashes and restart loops
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys_v14');
+    // Navo session 'astro_v15' (badhi juni history clean karshe)
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_astro_v15');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
@@ -33,15 +33,15 @@ async function connectToWhatsApp() {
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
         auth: state,
-        // Windows desktop target simulate secure authentication
-        browser: ['Windows', 'Chrome', '110.0.5481.177'],
+        // Browser change to avoid encryption block
+        browser: ['Maa-Consultancy', 'Safari', '16.0'],
         
-        // 🚀 RAM CRASH THAVATHI BACHAVAVA MATE STABLE SETTINGS 👇
-        historyCacheSize: 0,        // Extra old cached data reject
-        syncFullHistory: false,     // Avoid downloading past message loops
-        maxMsgRetryCount: 1,        // Minimize retry overhead
-        defaultQueryTimeoutMs: undefined, // Timeout problems resolve
-        markOnlineOnConnect: true   // Stay connected with priority status
+        // 🔥 STABILITY & RAM SAVER SETTINGS 👇
+        historyCacheSize: 0,        // Cache zero kari didhi
+        syncFullHistory: false,     // Juni history nathi joi ti
+        maxMsgRetryCount: 1,        // loop stop
+        defaultQueryTimeoutMs: 90000, // wait for slow response
+        markOnlineOnConnect: false  // online show thavanu bandh (low memory)
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -55,8 +55,7 @@ async function connectToWhatsApp() {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('❌ Connection closed, Reconnecting:', shouldReconnect);
             if(shouldReconnect) {
-                // Wait to make sure server doesn't hit memory crashes
-                setTimeout(() => connectToWhatsApp(), 10000);
+                setTimeout(() => connectToWhatsApp(), 10000); // Reconnect delay
             }
         } 
         else if(connection === 'open') {
@@ -65,20 +64,20 @@ async function connectToWhatsApp() {
             console.log('====================================================');
         }
 
-        // Check registration and delay request to avoid spam/loop blocks
+        // secure pairing with 15 seconds wait
         if (qr && !sock.authState.creds.registered && !isCodeRequested) {
             isCodeRequested = true;
-            console.log('\n⏳ WhatsApp Server sathe handshake thav dyo, wait 10 seconds...');
+            console.log('\n⏳ WhatsApp Server sathe handshake thav dyo, wait 15 seconds...');
             
-            await delay(12000); // 12 seconds safe handshake delay to satisfy pairing limits
+            await delay(15000); // Purto delay secure transaction mate
             try {
                 const code = await sock.requestPairingCode("919426612172");
                 console.log('\n====================================================');
                 console.log('👉 TAMARO PAIRING CODE (8 Aakda):', code);
                 console.log('====================================================\n');
             } catch(err) {
-                console.log('❌ Pairing code request fail thai: ', err.message);
-                isCodeRequested = false; // reset flag on errors
+                console.log('❌ Pairing code request fail: ', err.message);
+                isCodeRequested = false; 
             }
         }
     });
