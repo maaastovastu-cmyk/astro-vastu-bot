@@ -6,10 +6,9 @@ const swisseph = require('swisseph-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('✅ Maa Consultancy Astro-Vastu Bot is 24/7 Active!'));
+app.get('/', (req, res) => res.send('✅ Maa Consultancy Astro-Vastu Bot is Active!'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
-// Admin Mobile Number (તમારો પર્સનલ નંબર)
 const ADMIN_NUMBER = '919426612172@s.whatsapp.net';
 
 // Google Sheets Setup
@@ -24,8 +23,8 @@ const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 const userState = {};
 
 async function connectToWhatsApp() {
-    // Navo session 'astro_v15' (badhi juni history clean karshe)
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_astro_v15');
+    // Navo fresh safe session 'astro_v16'
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_astro_v16');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
@@ -33,15 +32,14 @@ async function connectToWhatsApp() {
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
         auth: state,
-        // Browser change to avoid encryption block
         browser: ['Maa-Consultancy', 'Safari', '16.0'],
         
-        // 🔥 STABILITY & RAM SAVER SETTINGS 👇
-        historyCacheSize: 0,        // Cache zero kari didhi
-        syncFullHistory: false,     // Juni history nathi joi ti
-        maxMsgRetryCount: 1,        // loop stop
-        defaultQueryTimeoutMs: 90000, // wait for slow response
-        markOnlineOnConnect: false  // online show thavanu bandh (low memory)
+        // RAM crashes thi bachva mate ekdam basic settings
+        historyCacheSize: 0,
+        syncFullHistory: false,
+        maxMsgRetryCount: 1,
+        defaultQueryTimeoutMs: 120000, // timeout vadhari didho
+        markOnlineOnConnect: false
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -55,7 +53,7 @@ async function connectToWhatsApp() {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('❌ Connection closed, Reconnecting:', shouldReconnect);
             if(shouldReconnect) {
-                setTimeout(() => connectToWhatsApp(), 10000); // Reconnect delay
+                setTimeout(() => connectToWhatsApp(), 15000); // vadhare samay aapo
             }
         } 
         else if(connection === 'open') {
@@ -64,19 +62,18 @@ async function connectToWhatsApp() {
             console.log('====================================================');
         }
 
-        // secure pairing with 15 seconds wait
         if (qr && !sock.authState.creds.registered && !isCodeRequested) {
             isCodeRequested = true;
-            console.log('\n⏳ WhatsApp Server sathe handshake thav dyo, wait 15 seconds...');
+            console.log('\n⏳ Server stability check... wait 18 seconds...');
             
-            await delay(15000); // Purto delay secure transaction mate
+            await delay(18000); // handshake mate purto delay
             try {
                 const code = await sock.requestPairingCode("919426612172");
                 console.log('\n====================================================');
                 console.log('👉 TAMARO PAIRING CODE (8 Aakda):', code);
                 console.log('====================================================\n');
             } catch(err) {
-                console.log('❌ Pairing code request fail: ', err.message);
+                console.log('❌ Pairing request fail: ', err.message);
                 isCodeRequested = false; 
             }
         }
@@ -90,7 +87,7 @@ async function connectToWhatsApp() {
         const text = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         if(!text) return;
 
-        // 1. ADMIN COMMANDS
+        // ADMIN COMMANDS
         if (chatId === ADMIN_NUMBER) {
             if (text.startsWith('OK 199')) {
                 const clientNum = text.split(' ')[2] + '@s.whatsapp.net';
@@ -107,7 +104,7 @@ async function connectToWhatsApp() {
 
         if (msg.key.fromMe) return;
 
-        // 2. CLIENT FUNNEL (Blueprint)
+        // CLIENT FUNNEL (Blueprint)
         if (!userState[chatId]) {
             userState[chatId] = { step: 1 };
             await sock.sendMessage(chatId, { text: 'નમસ્તે! Maa Consultancy Astro-Vastu માં તમારું સ્વાગત છે.\n\nકુંડળી અને વાસ્તુ માર્ગદર્શન માટે આ નંબર સેવ કરીને "SAVED" લખો.' });
