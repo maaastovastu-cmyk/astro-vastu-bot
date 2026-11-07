@@ -1,111 +1,123 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const { google } = require('googleapis');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const pino = require('pino');
 const express = require('express');
+const { google } = require('googleapis');
+const swisseph = require('swisseph'); // Swisseph add kari didhu che
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('✅ Astro Bot 24/7 Active!'));
+app.get('/', (req, res) => res.send('✅ Maa Consultancy Astro-Vastu Bot is 24/7 Active!'));
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
+// Google Sheets Setup
 const auth = new google.auth.GoogleAuth({
     credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 const sheets = google.sheets({ version: 'v4', auth });
-
 const MICRO_SHEET_ID = process.env.MICRO_SHEET_ID;
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID;
 
-const client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'astro-bot-v11' }), // Fari fresh start
-    puppeteer: { 
-        executablePath: '/opt/render/project/src/.cache/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
-        headless: true,
-        args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox', 
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process', 
-            '--disable-gpu',
-            '--disable-software-rasterizer', // Vadhara ni RAM na vapray
-            '--js-flags="--max-old-space-size=256"' // Memory ekdam control ma rakhe
-        ] 
-    },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-});
-
-client.on('qr', (qr) => {
-    const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(qr)}`;
-    
-    console.log('\n====================================================');
-    console.log('👉 QR Code aavi gayo che! Niche ni link par CLICK karo:');
-    console.log(qrLink);
-    console.log('====================================================\n');
-});
-
-client.on('ready', () => console.log('✅ Bot is Ready!'));
-
-client.on('disconnected', (reason) => {
-    console.log('❌ Bot Disconnected:', reason);
-    client.initialize();
-});
-
 const userState = {};
 
-client.on('message', async (msg) => {
-    const chatId = msg.from;
-    const text = msg.body.trim();
+async function connectToWhatsApp() {
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    const { version } = await fetchLatestBaileysVersion();
 
-    if (msg.fromMe) return;
+    const sock = makeWASocket({
+        version,
+        logger: pino({ level: 'silent' }),
+        printQRInTerminal: false,
+        auth: state,
+        browser: ['Maa Consultancy', 'Chrome', '1.0.0']
+    });
 
-    if (!userState[chatId]) {
-        userState[chatId] = { step: 1 };
-        return msg.reply('Namaste! Amit bhai ni Astro-Vastu Consultancy ma tamaru swagat che.\n\nKundali ane Vastu margdarshan mate krupa kari tamari details aapo.\nTamaru Naam su che?');
+    if (!sock.authState.creds.registered) {
+        setTimeout(async () => {
+            try {
+                const code = await sock.requestPairingCode("919426612172");
+                console.log('\n====================================================');
+                console.log('👉 TAMARO PAIRING CODE (8 Aakda):', code);
+                console.log('====================================================\n');
+            } catch(err) {
+                console.log('❌ Pairing code Error: ', err.message);
+            }
+        }, 3000);
     }
 
-    const state = userState[chatId];
+    sock.ev.on('creds.update', saveCreds);
 
-    if (state.step === 1) {
-        state.name = text;
-        state.step = 2;
-        return msg.reply('Tamari Janma Tarikh su che? (Da.ta. 12-05-1990)');
-    } 
-    else if (state.step === 2) {
-        state.dob = text;
-        state.step = 3;
-        return msg.reply('Tamaro Janma Samay su che? (Da.ta. 10:30 AM)');
-    }
-    else if (state.step === 3) {
-        state.tob = text;
-        state.step = 4;
-        return msg.reply('Tamaru Janma Sthal (Birth Place) su che?');
-    }
-    else if (state.step === 4) {
-        state.pob = text;
-        state.step = 5;
-        return msg.reply('Tamaro Prashna su che? (Je plan select karvo hoy te kaho: 199 ke 1100)');
-    }
-    else if (state.step === 5) {
-        state.question = text;
-        const targetSheet = text.includes('1100') ? MASTER_SHEET_ID : MICRO_SHEET_ID;
-
-        try {
-            await sheets.spreadsheets.values.append({
-                spreadsheetId: targetSheet,
-                range: 'Sheet1!A:F',
-                valueInputOption: 'USER_ENTERED',
-                resource: { values: [[new Date().toLocaleDateString(), state.name, state.dob, state.tob, state.pob, state.question]] }
-            });
-            msg.reply(`✅ Dhanyavad ${state.name}! Tamari details save thai gai che. Grah gintari chalu che. Ame jaldij reply karisu.`);
-        } catch (err) {
-            console.error(err);
-            msg.reply('❌ Details save karvama error aavi che.');
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
+        if(connection === 'close') {
+            const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+            console.log('❌ Connection closed, reconnecting:', shouldReconnect);
+            if(shouldReconnect) connectToWhatsApp();
+        } else if(connection === 'open') {
+            console.log('✅ Maa Consultancy Bot is Ready!');
         }
-        delete userState[chatId];
-    }
-});
+    });
 
-client.initialize();
+    sock.ev.on('messages.upsert', async m => {
+        const msg = m.messages[0];
+        if (!msg.message || msg.key.fromMe) return;
+
+        const chatId = msg.key.remoteJid;
+        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
+        if(!text) return;
+
+        // Blueprint Pramane Workflow
+        if (!userState[chatId]) {
+            userState[chatId] = { step: 1 };
+            await sock.sendMessage(chatId, { text: 'નમસ્તે! Maa Consultancy Astro-Vastu માં તમારું સ્વાગત છે.\n\nદરરોજના જ્યોતિષ સ્ટેટસ જોવા માટે આ નંબર સેવ કરીને SAVED લખો.' });
+            return;
+        }
+
+        const state = userState[chatId];
+        
+        if (state.step === 1) {
+            state.step = 2;
+            await sock.sendMessage(chatId, { text: 'તમારો જન્મ સમય લખો (જો ખબર ન હોય તો 0 લખો):' });
+        }
+        else if (state.step === 2) {
+            state.tob = text;
+            state.step = 3;
+            await sock.sendMessage(chatId, { text: 'તમારું જન્મ સ્થળ (Birth Place) જણાવો:' });
+        }
+        else if (state.step === 3) {
+            state.pob = text;
+            state.step = 4;
+            // Ahiya Swisseph no upyog bhavishya ma thase
+            await sock.sendMessage(chatId, { text: 'મારા ધ્યાનમાં આવ્યું છે કે છેલ્લા ૨ વર્ષમાં તમારે આર્થિક ઉતાર-ચઢાવ આવ્યો છે. શું આ સાચું છે? (હા/ના)' });
+        }
+        else if (state.step === 4) {
+            state.step = 5;
+            await sock.sendMessage(chatId, { text: 'સમજી ગયો. તમારી મુખ્ય તકલીફ થોડા શબ્દોમાં જણાવો.' });
+        }
+        else if (state.step === 5) {
+            state.problem = text;
+            state.step = 6;
+            
+            // Sheet ma data save
+            try {
+                await sheets.spreadsheets.values.append({
+                    spreadsheetId: MICRO_SHEET_ID,
+                    range: 'Sheet1!A:D',
+                    valueInputOption: 'USER_ENTERED',
+                    resource: { values: [[new Date().toLocaleDateString(), state.tob, state.pob, state.problem]] }
+                });
+            } catch (err) {
+                console.error('Sheet save error:', err);
+            }
+
+            await sock.sendMessage(chatId, { text: 'તમારા પ્રશ્નને અનુરૂપ ગ્રહોનું વિશ્લેષણ ચાલુ છે...' });
+            
+            // Blueprint pramanne 45 second no delay
+            setTimeout(async () => {
+                await sock.sendMessage(chatId, { text: 'મેં કુંડળીનો અભ્યાસ કરી લીધો છે. ફાઇનલ ગુપ્ત ઉપાય મેળવવા માટે ₹199 પેમેન્ટ નીચેના QR કોડ પર કરો.\n\n(પેમેન્ટ કર્યા પછી રાહ જુઓ)' });
+            }, 45000); 
+        }
+    });
+}
+
+connectToWhatsApp();
