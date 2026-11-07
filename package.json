@@ -1,17 +1,16 @@
 {
   "name": "astro-vastu-bot",
   "version": "1.0.0",
-  "description": "WhatsApp Bot for Astro-Vastu services",
+  "description": "WhatsApp Bot for Maa Consultancy Astro Vastu",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "start": "node index.js"
   },
   "dependencies": {
-    "whatsapp-web.js": "^1.26.0",
-    "qrcode-terminal": "^0.12.0",
-    "googleapis": "^105.0.0",
-    "express": "^4.18.2",
-    "swisseph-v2": "^1.1.0"
+    "@whiskeysockets/baileys": "^6.7.9",
+    "pino": "^9.0.0",
+    "express": "^4.19.2",
+    "googleapis": "^140.0.0",
+    "swisseph": "^1.0.2"
   }
 }
